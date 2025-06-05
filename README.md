@@ -26,4 +26,4 @@ The cell numbers are state values
 - Policy/Value Iteration
 - Monte Carlo methods have
 
-More reading @ [c0dew0rth](c0dew0rth.blogspot.com)
+More reading @ [c0dew0rth](https://c0dew0rth.blogspot.com/2025/06/a-bit-about-dynamic-programming-and.html)
