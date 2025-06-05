@@ -1,0 +1,119 @@
+<html>
+  <head>
+    <title>Simple RL demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.11.7/lib/p5.min.js"></script>
+    <script src="./bundle.js"></script>
+  </head>
+  <body>
+    <script src="./sketch.js"></script>
+    <div id="canvasContainer"></div>
+    <div style="display: flex">
+      <div
+        style="
+          margin-right: 10px;
+          border-width: 2px;
+          border-color: black;
+          border-style: dashed;
+        "
+      >
+        <div class="input-div">
+          <input
+            type="button"
+            onclick="btnClickEvaluate()"
+            value="Evaluate policy"
+          />
+          <input
+            type="number"
+            id="numberOfIterations"
+            value="100"
+            min="1"
+            max="10000"
+          />
+        </div>
+
+        <div class="input-div">
+          <input
+            type="button"
+            onclick="btnClickImprove()"
+            value="Improve policy"
+          />
+          <input
+            type="button"
+            onclick="btnAutomate()"
+            value="Automate"
+            title="Automate policy evaluation loop and policy improvement till convergence"
+          />
+        </div>
+
+        <div class="input-div">
+          <label for="rangeFontSize">Font size</label>
+          <input type="range" min="4" max="50" value="12" id="rangeFontSize" />
+        </div>
+
+        <div class="input-div">
+          <label for="rangeArrowSize">Arrow size</label>
+          <input
+            type="range"
+            min="4"
+            max="100"
+            value="24"
+            id="rangeArrowSize"
+          />
+        </div>
+      </div>
+      <div>
+        <div class="input-div">
+          <label for="maxIterationsMonteCarloPerEpisode"
+            >Max. iteration per episode</label
+          >
+          <input
+            type="number"
+            id="maxIterationsMonteCarloPerEpisode"
+            value="500"
+            min="1"
+            max="10000"
+            title="Maximum number of steps to simulate per episode if a terminal state is not reached"
+          />
+        </div>
+        <div class="input-div">
+          <input
+            type="button"
+            value="Run episodes"
+            id="btnRunMCESEpisodes"
+            onclick="btnClickRunMCESEpisodes()"
+            title="Run Monte Carlo Exploring Starts (MCES) for specified number of episodes to estimate Q(s,a) randomly"
+          />
+          <input
+            type="number"
+            id="noOfEpisodesMCES"
+            value="1000"
+            min="1"
+            max="10000"
+            title="Number of episodes to run"
+          />
+        </div>
+        <div class="input-div">
+          <input
+            type="button"
+            value="Improve policy"
+            id="btnRunMCESImprovePolicy"
+            onclick="btnClickImprovePolicyMCES()"
+            title="Based on the average Q(s,a) for each (s,a) from the sampled episodes, extract the best policy"
+          />
+          <input
+            type="button"
+            onclick="btnAutomateMCES()"
+            value="Automate"
+            title="Automate episode sampling and policy improvement till convergence"
+          />
+        </div>
+      </div>
+    </div>
+  </body>
+
+  <style>
+    .input-div {
+      padding: 6px;
+    }
+  </style>
+</html>
