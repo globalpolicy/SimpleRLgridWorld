@@ -405,6 +405,7 @@ class MonteCarloSolver {
         throw new Error("Given state not found!");
     }
 }
+// Mostly based on Miguel Morales' Grokking Deep Reinforcement Learning book (2020)
 class PolicyIterationSolver {
     get Policy() {
         return this.policy;
