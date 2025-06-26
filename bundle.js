@@ -1,4 +1,15 @@
 "use strict";
+class Policy {
+    constructor() {
+        this.policyMap = new Map();
+    }
+    SetAction(state, action) {
+        this.policyMap.set(JSON.stringify(state), action);
+    }
+    GetAction(state) {
+        return this.policyMap.get(JSON.stringify(state));
+    }
+}
 class GridWorld {
     constructor(numRows, numColumns) {
         this.obstacleReward = -2;
@@ -244,56 +255,6 @@ class GridWorld {
         return new Set(["E", "W", "N", "S"]);
     }
 }
-class QValue {
-    get State() {
-        return this.state;
-    }
-    get Action() {
-        return this.action;
-    }
-    get Value() {
-        return this.value;
-    }
-    constructor(state, action, value) {
-        this.state = state;
-        this.action = action;
-        this.value = value;
-    }
-    IsSame(anotherQValue) {
-        return (anotherQValue.action === this.action && anotherQValue.state === this.state);
-    }
-}
-class QFunction {
-    constructor() {
-        this.store = new Map();
-        this.actionSet = new Set(); // only to keep track of unique actions in the store
-    }
-    HashStateActionPair(state, action) {
-        return JSON.stringify(state) + QFunction.DELIM + JSON.stringify(action);
-    }
-    GetValue(state, action) {
-        return this.store.get(this.HashStateActionPair(state, action));
-    }
-    SetValue(state, action, value) {
-        this.actionSet.add(action);
-        this.store.set(this.HashStateActionPair(state, action), value);
-    }
-    ArgMaxAction(state) {
-        let bestAction = undefined;
-        let bestValue = -Infinity;
-        for (const action of this.actionSet) {
-            let potentialStoreValue = this.store.get(this.HashStateActionPair(state, action));
-            if (potentialStoreValue != undefined) {
-                if (potentialStoreValue > bestValue) {
-                    bestValue = potentialStoreValue;
-                    bestAction = action;
-                }
-            }
-        }
-        return [bestAction, bestValue];
-    }
-}
-QFunction.DELIM = "{||}";
 // Implemented according to the procedure described by Professor Saeed Saeedvand @ https://www.youtube.com/watch?v=oGB3dkI-Lt0
 class MonteCarloSolver {
     get Policy() {
@@ -314,8 +275,9 @@ class MonteCarloSolver {
     constructor(environment, discountGamma = 0.99, maxSteps = 500) {
         // private averageQValues = new Array<QValue<TState, TAction>>(); // average action values calculated during policy improvement from the sampled episodes
         this.averageQValues = new QFunction();
-        // these must be the same length as states
+        // this must be the same length as states
         this.policy = [];
+        // storage for sampled episodes
         this.qvalues = [];
         this.states = environment.GetStates();
         this.actions = Array.from(environment.GetActions());
@@ -482,5 +444,142 @@ class PolicyIterationSolver {
             }
         }
         return policyChanged;
+    }
+}
+class QFunction {
+    constructor() {
+        this.store = new Map();
+        this.actionSet = new Set(); // only to keep track of unique actions in the store
+    }
+    HashStateActionPair(state, action) {
+        return JSON.stringify(state) + QFunction.DELIM + JSON.stringify(action);
+    }
+    GetValue(state, action) {
+        return this.store.get(this.HashStateActionPair(state, action));
+    }
+    SetValue(state, action, value) {
+        this.actionSet.add(action);
+        this.store.set(this.HashStateActionPair(state, action), value);
+    }
+    /**
+     * Obtain the action in the specified state that has the highest value
+     * @param state The state to obtain the argmax over actions for
+     * @returns A tuple of the best action and its corresponding value
+     */
+    ArgMaxAction(state) {
+        let bestAction = undefined;
+        let bestValue = -Infinity;
+        for (const action of this.actionSet) {
+            let potentialStoreValue = this.store.get(this.HashStateActionPair(state, action));
+            if (potentialStoreValue != undefined) {
+                if (potentialStoreValue > bestValue) {
+                    bestValue = potentialStoreValue;
+                    bestAction = action;
+                }
+            }
+        }
+        return [bestAction, bestValue];
+    }
+}
+QFunction.DELIM = "{||}";
+class QValue {
+    get State() {
+        return this.state;
+    }
+    get Action() {
+        return this.action;
+    }
+    get Value() {
+        return this.value;
+    }
+    constructor(state, action, value) {
+        this.state = state;
+        this.action = action;
+        this.value = value;
+    }
+    IsSame(anotherQValue) {
+        return (anotherQValue.action === this.action && anotherQValue.state === this.state);
+    }
+}
+class SarsaSolver {
+    constructor(environment, discountGamma = 0.99, learningRateAlpha = 0.5, maxStepsPerEpisode = 500, epsilon = 0.01) {
+        this.policy = new Policy();
+        this.qFunction = new QFunction();
+        this.environment = environment;
+        this.discountGamma = discountGamma;
+        this.states = environment.GetStates();
+        this.actions = Array.from(environment.GetActions());
+        this.learningRateAlpha = learningRateAlpha;
+        this.maxStepsPerEpisode = maxStepsPerEpisode;
+        this.minEpsilon = epsilon;
+    }
+    Initialize() {
+        this.policy = new Policy();
+    }
+    /**
+     * Sweep through all the states, executing the current policy trajectory while performing action-value updates at each step along the way
+     */
+    PolicyEvaluate() {
+        var _a, _b, _c, _d;
+        let runningEpsilon = 1; // this epsilon decays every episode
+        for (let i = 0; i < this.states.length; i++) {
+            runningEpsilon *= (this.states.length - i) / this.states.length; // decay
+            let state = this.states[i];
+            let action = (_a = this.policy.GetAction(state)) !== null && _a !== void 0 ? _a : this.actions[0]; // the null-coalescing operation is for when the policy is empty
+            let noOfSteps = 0;
+            while (noOfSteps++ < this.maxStepsPerEpisode) {
+                if (this.environment.IsStateTerminal(state))
+                    break;
+                const currentQValue = (_b = this.qFunction.GetValue(state, action)) !== null && _b !== void 0 ? _b : 0; // 0 if the Q-function doesn't have this state-action pair yet
+                const nextStateAndReward = this.environment.SimulateAction(state, action);
+                const nextStateAction = Math.random() > Math.max(this.minEpsilon, runningEpsilon)
+                    ? (_c = this.policy.GetAction(nextStateAndReward.state)) !== null && _c !== void 0 ? _c : this.actions[0]
+                    : this.actions[Math.floor(Math.random() * this.actions.length)];
+                const nextStateQValue = (_d = this.qFunction.GetValue(nextStateAndReward.state, nextStateAction)) !== null && _d !== void 0 ? _d : 0;
+                const tdTarget = nextStateAndReward.reward + this.discountGamma * nextStateQValue;
+                this.qFunction.SetValue(state, action, currentQValue + this.learningRateAlpha * (tdTarget - currentQValue));
+                state = nextStateAndReward.state;
+                action = nextStateAction;
+            }
+        }
+    }
+    /**
+     * Improve the working policy in place using the refined action-values (Q function) after the policy evaluation phase
+     * @returns True if the policy changed
+     */
+    PolicyImprove() {
+        var _a, _b;
+        let policyChanged = false;
+        for (let i = 0; i < this.states.length; i++) {
+            let state = this.states[i];
+            let actionAndValue = this.qFunction.ArgMaxAction(state);
+            let bestActionForState = (_a = actionAndValue[0]) !== null && _a !== void 0 ? _a : this.actions[0];
+            let currentActionForState = (_b = this.policy.GetAction(state)) !== null && _b !== void 0 ? _b : this.actions[0];
+            if (!this.environment.AreActionsEqual(currentActionForState, bestActionForState)) {
+                policyChanged = true;
+                this.policy.SetAction(state, bestActionForState);
+            }
+        }
+        return policyChanged;
+    }
+    get Policy() {
+        var _a;
+        let retval = new Array();
+        for (let i = 0; i < this.states.length; i++) {
+            retval.push((_a = this.policy.GetAction(this.states[i])) !== null && _a !== void 0 ? _a : this.actions[0]);
+        }
+        return retval;
+    }
+    set MaxStepsPerEpisode(maxSteps) {
+        this.maxStepsPerEpisode = maxSteps;
+    }
+    set LearningRateAlpha(alpha) {
+        this.learningRateAlpha = alpha;
+    }
+    set DiscountFactorGamma(gamma) {
+        this.discountGamma = gamma;
+    }
+    set Epsilon(epsilon) {
+        this.minEpsilon = epsilon;
     }
 }
