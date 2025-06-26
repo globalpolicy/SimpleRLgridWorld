@@ -108,6 +108,91 @@
           />
         </div>
       </div>
+      <div
+        style="
+          margin-right: 10px;
+          border-width: 2px;
+          border-color: black;
+          border-style: dashed;
+        "
+      >
+        <div class="input-div">
+          <label for="maxStepsPerEpisodeSarsa">Max. steps per episode</label>
+          <input
+            type="number"
+            id="maxStepsPerEpisodeSarsa"
+            value="500"
+            min="1"
+            max="10000"
+            title="Maximum number of steps to simulate per episode before truncation if a terminal state is not reached"
+          />
+        </div>
+        <div class="input-div">
+          <label for="learningRateSarsa">Learning rate (α)</label>
+          <input
+            type="range"
+            min="0.001"
+            max="1"
+            value="0.5"
+            step="0.001"
+            id="learningRateSarsa"
+          />
+        </div>
+        <div class="input-div">
+          <label for="discountGammaSarsa">Discount factor (γ)</label>
+          <input
+            type="range"
+            min="0.01"
+            max="1"
+            value="0.9"
+            step="0.01"
+            id="discountGammaSarsa"
+          />
+        </div>
+        <div class="input-div">
+          <label for="epsilonSarsa">Min. epsilon (ε)</label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            value="0.001"
+            step="0.001"
+            id="epsilonSarsa"
+          />
+        </div>
+        <div class="input-div">
+          <input
+            type="button"
+            value="Update Q-values"
+            id="btnRunSarsaUpdates"
+            onclick="btnRunSarsaUpdates()"
+            title="Run the SARSA algorithm state sweep for specified number of times to refine Q(s,a)"
+          />
+          <input
+            type="number"
+            id="noOfSweepsSarsa"
+            value="1"
+            min="1"
+            max="10000"
+            title="Number of complete state sweeps to run over the environment"
+          />
+        </div>
+        <div class="input-div">
+          <input
+            type="button"
+            value="Improve policy"
+            id="btnRunSarsaImprovePolicy"
+            onclick="btnClickImprovePolicySarsa()"
+            title="Based on the refined Q(s,a) values from the completed sweeps, extract the best policy"
+          />
+          <input
+            type="button"
+            onclick="btnAutomateSarsa()"
+            value="Automate"
+            title="Automate Q value refinement and policy improvement/extraction till convergence"
+          />
+        </div>
+      </div>
     </div>
   </body>
 

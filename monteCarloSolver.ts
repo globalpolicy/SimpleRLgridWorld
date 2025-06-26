@@ -1,69 +1,3 @@
-class QValue<TState, TAction> {
-  private state: TState;
-  private action: TAction;
-  private value: number; // the action action value of this state-action pair
-
-  public get State() {
-    return this.state;
-  }
-
-  public get Action() {
-    return this.action;
-  }
-
-  public get Value() {
-    return this.value;
-  }
-
-  public constructor(state: TState, action: TAction, value: number) {
-    this.state = state;
-    this.action = action;
-    this.value = value;
-  }
-
-  public IsSame(anotherQValue: QValue<TState, TAction>): boolean {
-    return (
-      anotherQValue.action === this.action && anotherQValue.state === this.state
-    );
-  }
-}
-
-class QFunction<TState, TAction> {
-  private static DELIM = "{||}";
-  private store = new Map<string, number>();
-  private actionSet = new Set<TAction>(); // only to keep track of unique actions in the store
-
-  private HashStateActionPair(state: TState, action: TAction): string {
-    return JSON.stringify(state) + QFunction.DELIM + JSON.stringify(action);
-  }
-
-  public GetValue(state: TState, action: TAction): number | undefined {
-    return this.store.get(this.HashStateActionPair(state, action));
-  }
-
-  public SetValue(state: TState, action: TAction, value: number) {
-    this.actionSet.add(action);
-    this.store.set(this.HashStateActionPair(state, action), value);
-  }
-
-  public ArgMaxAction(state: TState): [TAction | undefined, number] {
-    let bestAction: TAction | undefined = undefined;
-    let bestValue = -Infinity;
-    for (const action of this.actionSet) {
-      let potentialStoreValue = this.store.get(
-        this.HashStateActionPair(state, action)
-      );
-      if (potentialStoreValue != undefined) {
-        if (potentialStoreValue > bestValue) {
-          bestValue = potentialStoreValue;
-          bestAction = action;
-        }
-      }
-    }
-    return [bestAction, bestValue];
-  }
-}
-
 // Implemented according to the procedure described by Professor Saeed Saeedvand @ https://www.youtube.com/watch?v=oGB3dkI-Lt0
 class MonteCarloSolver<TState, TAction> implements ISolver<TAction> {
   private states: Array<TState>;
@@ -74,8 +8,10 @@ class MonteCarloSolver<TState, TAction> implements ISolver<TAction> {
   // private averageQValues = new Array<QValue<TState, TAction>>(); // average action values calculated during policy improvement from the sampled episodes
   private averageQValues = new QFunction<TState, TAction>();
 
-  // these must be the same length as states
+  // this must be the same length as states
   private policy: Array<TAction> = [];
+  
+  // storage for sampled episodes
   private qvalues: Array<QValue<TState, TAction>> = [];
 
   public get Policy() {

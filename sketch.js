@@ -14,7 +14,7 @@ let targetLocation;
 let policySolver;
 let monteCarloSolver;
 
-let activeSolver = 0; // 0 for policySolver, 1 for monteCarloSolver
+let activeSolver = 0; // 0 for policySolver, 1 for monteCarloSolver, 2 for SARSA
 
 let directionMapping = {
   N: "↑",
@@ -38,6 +38,9 @@ function setup() {
 
   monteCarloSolver = new MonteCarloSolver(gridWorld);
   monteCarloSolver.Initialize();
+
+  sarsaSolver = new SarsaSolver(gridWorld);
+  sarsaSolver.Initialize();
 }
 
 function draw() {
@@ -50,6 +53,7 @@ function draw() {
 
   if (activeSolver == 0) drawPolicyAndValuesGPI();
   else if (activeSolver == 1) drawPolicyMonteCarlo();
+  else if (activeSolver == 2) drawPolicySarsa();
 }
 
 function mouseDragged(mouseEvent) {
@@ -110,6 +114,34 @@ function drawPolicyAndValuesGPI() {
 
 function drawPolicyMonteCarlo() {
   let policy = monteCarloSolver.Policy;
+  for (let i = 0; i < numRows; i++) {
+    for (let j = 0; j < numCols; j++) {
+      // don't draw actions on obstacles and targets
+      if (gridWorld.GetObstacles().some((el) => el[0] === j && el[1] === i))
+        continue;
+      let targetLocation = gridWorld.GetTargetLocation();
+      if (targetLocation.x === j && targetLocation.y === i) continue;
+
+      let index = i * numCols + j;
+
+      let action = policy[index];
+      textAlign(CENTER, CENTER);
+
+      if (action !== null) {
+        textSize(parseInt(document.getElementById("rangeArrowSize").value));
+        fill("blue");
+        text(
+          directionMapping[action],
+          j * delX + delX / 2,
+          i * delY + delY / 2
+        );
+      }
+    }
+  }
+}
+
+function drawPolicySarsa() {
+  let policy = sarsaSolver.Policy;
   for (let i = 0; i < numRows; i++) {
     for (let j = 0; j < numCols; j++) {
       // don't draw actions on obstacles and targets
@@ -284,4 +316,73 @@ function btnAutomateMCES() {
 
 //#endregion
 
+//#region SARSA
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("learningRateSarsa").title =
+    document.getElementById("learningRateSarsa").value;
+
+  document.getElementById("discountGammaSarsa").title =
+    document.getElementById("discountGammaSarsa").value;
+
+  document.getElementById("epsilonSarsa").title =
+    document.getElementById("epsilonSarsa").value;
+
+  document
+    .getElementById("learningRateSarsa")
+    .addEventListener("input", (event) => {
+      event.target.title = event.target.value;
+    });
+
+  document
+    .getElementById("discountGammaSarsa")
+    .addEventListener("input", (event) => {
+      event.target.title = event.target.value;
+    });
+
+  document.getElementById("epsilonSarsa").addEventListener("input", (event) => {
+    event.target.title = event.target.value;
+  });
+});
+
+function btnRunSarsaUpdates() {
+  activeSolver = 2;
+
+  let maxSteps = document.getElementById("maxStepsPerEpisodeSarsa").value;
+  sarsaSolver.MaxStepsPerEpisode = maxSteps;
+  let learningRateAlpha = document.getElementById("learningRateSarsa").value;
+  sarsaSolver.LearningRateAlpha = learningRateAlpha;
+  let discountFactor = document.getElementById("discountGammaSarsa").value;
+  sarsaSolver.DiscountFactorGamma = discountFactor;
+  let epsilon = document.getElementById("epsilonSarsa").value;
+  sarsaSolver.epsilon = epsilon;
+
+  let numberOfStateSweeps = document.getElementById("noOfSweepsSarsa").value;
+  
+
+  for (let i = 0; i < numberOfStateSweeps; i++) {
+    sarsaSolver.PolicyEvaluate();
+  }
+}
+
+function btnClickImprovePolicySarsa() {
+  activeSolver = 2;
+  sarsaSolver.PolicyImprove();
+}
+
+function btnAutomateSarsa() {
+  activeSolver = 2;
+  let policyChanged = true;
+  let iterCount = 0;
+
+  while (policyChanged && iterCount < 1000) {
+    // sweep through the states specified number of times
+    btnRunSarsaUpdates();
+    // improve the policy based on the action-values refined over the above sweeps
+    policyChanged = sarsaSolver.PolicyImprove();
+    // increment the iteration threshold counter
+    iterCount++;
+  }
+
+  if (!policyChanged) console.log("Policy converged!");
+}
 //#endregion
